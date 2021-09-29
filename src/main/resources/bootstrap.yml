@@ -1,0 +1,6 @@
+spring:
+  application:
+    name: be-storage-service
+  profiles:
+    active:
+      - dev
