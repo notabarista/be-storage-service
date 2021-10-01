@@ -1,0 +1,72 @@
+server:
+  port: 8085
+
+spring:
+  output:
+    ansi:
+      enabled: DETECT
+  mvc:
+    log-request-details: true
+  main:
+    allow-bean-definition-overriding: true
+  servlet:
+    multipart:
+      max-file-size: 25MB
+      max-request-size: 100MB
+  kafka:
+    bootstrap-servers: rocket-01.srvs.cloudkafka.com:9094,rocket-02.srvs.cloudkafka.com:9094,rocket-03.srvs.cloudkafka.com:9094
+    properties:
+      sasl:
+        jaas:
+          config: org.apache.kafka.common.security.scram.ScramLoginModule required username="${CLOUD_KARAFKA_USERNAME}" password="${CLOUD_KARAFKA_PASSWORD}";
+        mechanism: SCRAM-SHA-256
+      security:
+        protocol: SASL_SSL
+    template:
+      default-topic: ${CLOUD_KARAFKA_TOPIC}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+
+eureka:
+  client:
+    enabled: true
+    register-with-eureka: true
+    serviceUrl:
+      defaultZone: ${EUREKA_SERVER:http://localhost:8761/eureka}
+    fetchRegistry: true
+    healthcheck:
+      enabled: true
+  instance:
+    instance-id: ${spring.application.name}:${random.int}
+
+ribbon:
+  http:
+    client:
+      enabled: true
+  https:
+    client:
+      enabled: true
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include:
+          - '*'
+
+logging:
+  pattern:
+    console: "%clr(%d{yyyy-MM-dd HH:mm:ss.SSS}){faint} %clr(%5p) %clr(${PID}){magenta} %clr(---){faint} %clr([%15.15t]){faint} %clr(%-40.40logger{39}){cyan} %clr(:){faint} %m%n%wEx"
+    file: "%clr(%d{yyyy-MM-dd HH:mm:ss.SSS}){faint} %clr(%5p) %clr(${PID}){magenta} %clr(---){faint} %clr([%15.15t]){faint} %clr(%-40.40logger{39}){cyan} %clr(:){faint} %m%n%wEx"
+  level:
+    root: info
+    org.springframework: warn
+    org.hibernate: info
+    org.notabarista: info
+  logback:
+    rollingpolicy:
+      max-file-size: 10MB
+      max-history: 2
+  file:
+    name: /var/log/${spring.application.name}.log
