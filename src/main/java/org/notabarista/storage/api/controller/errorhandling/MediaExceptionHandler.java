@@ -12,6 +12,7 @@ import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExcep
 
 import javax.validation.ConstraintViolation;
 import javax.validation.ConstraintViolationException;
+import java.net.MalformedURLException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -28,6 +29,12 @@ public class MediaExceptionHandler extends ResponseEntityExceptionHandler {
     protected ResponseEntity<Object> handleMediaStorageException(RuntimeException ex, WebRequest request) {
         String bodyOfResponse = ex.getMessage();
         return handleExceptionInternal(ex, bodyOfResponse,
+                new HttpHeaders(), HttpStatus.BAD_REQUEST, request);
+    }
+
+    @ExceptionHandler(value = MalformedURLException.class)
+    protected ResponseEntity<Object> handleMalformedURLException(MalformedURLException ex, WebRequest request) {
+        return handleExceptionInternal(ex, "Invalid URL.",
                 new HttpHeaders(), HttpStatus.BAD_REQUEST, request);
     }
 
