@@ -6,6 +6,8 @@ import org.notabarista.service.util.IBackendRequestService;
 import org.notabarista.service.util.ICheckAccessService;
 import org.notabarista.storage.exception.MediaStorageException;
 import org.notabarista.storage.kafka.producer.MediaEventProducer;
+import org.notabarista.storage.service.ItemService;
+import org.notabarista.storage.service.MediaService;
 import org.notabarista.storage.service.StorageService;
 import org.notabarista.util.NABConstants;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -48,7 +50,13 @@ public class MediaControllerTest {
     private ICheckAccessService checkAccessService;
 
     @MockBean
+    private ItemService itemService;
+
+    @MockBean
     private StorageService storageService;
+
+    @MockBean
+    private MediaService mediaService;
 
     @Test
     public void storeFiles_validInputShouldReturnValidOutput() throws Exception {
@@ -58,20 +66,20 @@ public class MediaControllerTest {
         MockMultipartFile firstFile = new MockMultipartFile("files", "image1.jpg", "image/jpg", "mock data".getBytes());
         MockMultipartFile secondFile = new MockMultipartFile("files", "image2.png", "image/png", "mock data".getBytes());
         List<String> mockMediaURLs = List.of("url1", "url2");
-        when(storageService.store(itemID, new MultipartFile[] {firstFile, secondFile}, userIDHeader)).thenReturn(mockMediaURLs);
+        when(storageService.store(itemID, new MultipartFile[]{firstFile, secondFile}, userIDHeader)).thenReturn(mockMediaURLs);
 
         // when
         this.mockMvc.perform(MockMvcRequestBuilders.multipart("/")
-                                                                         .file(firstFile)
-                                                                         .file(secondFile)
-                                                                         .param("itemID", itemID)
-                                                                         .header(NABConstants.UID_HEADER_NAME, userIDHeader))
-                                          .andDo(print())
-                                          // then
-                                          .andExpect(status().isOk())
-                                          .andExpect(jsonPath("$", hasSize(2)))
-                                          .andExpect(jsonPath("$[0]", is(mockMediaURLs.get(0))))
-                                          .andExpect(jsonPath("$[1]", is(mockMediaURLs.get(1))));
+                                                   .file(firstFile)
+                                                   .file(secondFile)
+                                                   .param("itemID", itemID)
+                                                   .header(NABConstants.UID_HEADER_NAME, userIDHeader))
+                    .andDo(print())
+                    // then
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$", hasSize(2)))
+                    .andExpect(jsonPath("$[0]", is(mockMediaURLs.get(0))))
+                    .andExpect(jsonPath("$[1]", is(mockMediaURLs.get(1))));
     }
 
     @Test
@@ -133,7 +141,7 @@ public class MediaControllerTest {
         String itemID = "mock";
         MockMultipartFile firstFile = new MockMultipartFile("files", "image1.jpg", "image/jpg", "mock data".getBytes());
         MockMultipartFile secondFile = new MockMultipartFile("files", "image2.png", "image/png", "mock data".getBytes());
-        when(storageService.store(itemID, new MultipartFile[] {firstFile, secondFile}, userIDHeader)).thenThrow(MediaStorageException.class);
+        when(storageService.store(itemID, new MultipartFile[]{firstFile, secondFile}, userIDHeader)).thenThrow(MediaStorageException.class);
 
         // when
         this.mockMvc.perform(MockMvcRequestBuilders.multipart("/")
@@ -157,7 +165,7 @@ public class MediaControllerTest {
         // when
         this.mockMvc.perform(MockMvcRequestBuilders.delete("/")
                                                    .contentType(MediaType.APPLICATION_JSON_VALUE)
-                                                   .content("[\"" + url1 + "\", \"" + url2 +"\"]")
+                                                   .content("[\"" + url1 + "\", \"" + url2 + "\"]")
                                                    .param("itemID", itemID)
                                                    .header(NABConstants.UID_HEADER_NAME, userIDHeader))
                     .andDo(print())
@@ -196,7 +204,7 @@ public class MediaControllerTest {
         // when
         this.mockMvc.perform(MockMvcRequestBuilders.delete("/")
                                                    .contentType(MediaType.APPLICATION_JSON_VALUE)
-                                                   .content("[\"" + url1 + "\", \"" + url2 +"\"]")
+                                                   .content("[\"" + url1 + "\", \"" + url2 + "\"]")
                                                    .header(NABConstants.UID_HEADER_NAME, userIDHeader))
                     .andDo(print())
                     // then
@@ -215,7 +223,7 @@ public class MediaControllerTest {
         // when
         this.mockMvc.perform(MockMvcRequestBuilders.delete("/")
                                                    .contentType(MediaType.APPLICATION_JSON_VALUE)
-                                                   .content("[\"" + url1 + "\", \"" + url2 +"\"]")
+                                                   .content("[\"" + url1 + "\", \"" + url2 + "\"]")
                                                    .param("itemID", itemID)
                                                    .header(NABConstants.UID_HEADER_NAME, userIDHeader))
                     .andDo(print())
@@ -235,8 +243,162 @@ public class MediaControllerTest {
         // when
         this.mockMvc.perform(MockMvcRequestBuilders.delete("/")
                                                    .contentType(MediaType.APPLICATION_JSON_VALUE)
-                                                   .content("[\"" + url1 + "\", \"" + url2 +"\"]")
+                                                   .content("[\"" + url1 + "\", \"" + url2 + "\"]")
                                                    .param("itemID", itemID)
+                                                   .header(NABConstants.UID_HEADER_NAME, userIDHeader))
+                    .andDo(print())
+                    // then
+                    .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    public void saveLinks_validInputShouldReturnValidOutput() throws Exception {
+        // given
+        String userIDHeader = "mock";
+        String itemID = "mock";
+        String url1 = "url1", url2 = "url2";
+        List<String> mockMediaURLs = List.of(url1, url2);
+        doNothing().when(mediaService).addMedia(itemID, userIDHeader, mockMediaURLs);
+
+        // when
+        this.mockMvc.perform(MockMvcRequestBuilders.post("/links")
+                                                   .contentType(MediaType.APPLICATION_JSON_VALUE)
+                                                   .content("[\"" + url1 + "\", \"" + url2 + "\"]")
+                                                   .param("itemID", itemID)
+                                                   .header(NABConstants.UID_HEADER_NAME, userIDHeader))
+                    .andDo(print())
+                    // then
+                    .andExpect(status().isOk());
+    }
+
+    @Test
+    public void saveLinks_missingLinksShouldReturnBadRequest() throws Exception {
+        // given
+        String userIDHeader = "mock";
+        String itemID = "mock";
+        String url1 = "url1", url2 = "url2";
+        List<String> mockMediaURLs = List.of(url1, url2);
+        doNothing().when(mediaService).addMedia(itemID, userIDHeader, mockMediaURLs);
+
+        // when
+        this.mockMvc.perform(MockMvcRequestBuilders.post("/links")
+                                                   .contentType(MediaType.APPLICATION_JSON_VALUE)
+                                                   .param("itemID", itemID)
+                                                   .header(NABConstants.UID_HEADER_NAME, userIDHeader))
+                    .andDo(print())
+                    // then
+                    .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    public void saveLinks_missingItemIDShouldReturnBadRequest() throws Exception {
+        // given
+        String userIDHeader = "mock";
+        String itemID = "mock";
+        String url1 = "url1", url2 = "url2";
+        List<String> mockMediaURLs = List.of(url1, url2);
+        doNothing().when(mediaService).addMedia(itemID, userIDHeader, mockMediaURLs);
+
+        // when
+        this.mockMvc.perform(MockMvcRequestBuilders.post("/links")
+                                                   .contentType(MediaType.APPLICATION_JSON_VALUE)
+                                                   .content("[\"" + url1 + "\", \"" + url2 + "\"]")
+                                                   .header(NABConstants.UID_HEADER_NAME, userIDHeader))
+                    .andDo(print())
+                    // then
+                    .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    public void saveLinks_ItemIDNotFoundShouldReturnBadRequest() throws Exception {
+        // given
+        String userIDHeader = "mock";
+        String itemID = "mock";
+        String url1 = "url1", url2 = "url2";
+        List<String> mockMediaURLs = List.of(url1, url2);
+        doThrow(MediaStorageException.class).when(mediaService).addMedia(itemID, userIDHeader, mockMediaURLs);
+
+        // when
+        this.mockMvc.perform(MockMvcRequestBuilders.post("/links")
+                                                   .contentType(MediaType.APPLICATION_JSON_VALUE)
+                                                   .content("[\"" + url1 + "\", \"" + url2 + "\"]")
+                                                   .header(NABConstants.UID_HEADER_NAME, userIDHeader))
+                    .andDo(print())
+                    // then
+                    .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    public void deleteLinks_validInputShouldReturnValidOutput() throws Exception {
+        // given
+        String userIDHeader = "mock";
+        String itemID = "mock";
+        String url1 = "url1", url2 = "url2";
+        List<String> mockMediaURLs = List.of(url1, url2);
+        doNothing().when(mediaService).addMedia(itemID, userIDHeader, mockMediaURLs);
+
+        // when
+        this.mockMvc.perform(MockMvcRequestBuilders.delete("/links")
+                                                   .contentType(MediaType.APPLICATION_JSON_VALUE)
+                                                   .content("[\"" + url1 + "\", \"" + url2 + "\"]")
+                                                   .param("itemID", itemID)
+                                                   .header(NABConstants.UID_HEADER_NAME, userIDHeader))
+                    .andDo(print())
+                    // then
+                    .andExpect(status().isOk());
+    }
+
+    @Test
+    public void deleteLinks_missingLinksShouldReturnBadRequest() throws Exception {
+        // given
+        String userIDHeader = "mock";
+        String itemID = "mock";
+        String url1 = "url1", url2 = "url2";
+        List<String> mockMediaURLs = List.of(url1, url2);
+        doNothing().when(mediaService).addMedia(itemID, userIDHeader, mockMediaURLs);
+
+        // when
+        this.mockMvc.perform(MockMvcRequestBuilders.post("/links")
+                                                   .contentType(MediaType.APPLICATION_JSON_VALUE)
+                                                   .param("itemID", itemID)
+                                                   .header(NABConstants.UID_HEADER_NAME, userIDHeader))
+                    .andDo(print())
+                    // then
+                    .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    public void deleteLinks_missingItemIDShouldReturnBadRequest() throws Exception {
+        // given
+        String userIDHeader = "mock";
+        String itemID = "mock";
+        String url1 = "url1", url2 = "url2";
+        List<String> mockMediaURLs = List.of(url1, url2);
+        doNothing().when(mediaService).addMedia(itemID, userIDHeader, mockMediaURLs);
+
+        // when
+        this.mockMvc.perform(MockMvcRequestBuilders.post("/links")
+                                                   .contentType(MediaType.APPLICATION_JSON_VALUE)
+                                                   .content("[\"" + url1 + "\", \"" + url2 + "\"]")
+                                                   .header(NABConstants.UID_HEADER_NAME, userIDHeader))
+                    .andDo(print())
+                    // then
+                    .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    public void deleteLinks_ItemIDNotFoundShouldReturnBadRequest() throws Exception {
+        // given
+        String userIDHeader = "mock";
+        String itemID = "mock";
+        String url1 = "url1", url2 = "url2";
+        List<String> mockMediaURLs = List.of(url1, url2);
+        doThrow(MediaStorageException.class).when(mediaService).addMedia(itemID, userIDHeader, mockMediaURLs);
+
+        // when
+        this.mockMvc.perform(MockMvcRequestBuilders.post("/links")
+                                                   .contentType(MediaType.APPLICATION_JSON_VALUE)
+                                                   .content("[\"" + url1 + "\", \"" + url2 + "\"]")
                                                    .header(NABConstants.UID_HEADER_NAME, userIDHeader))
                     .andDo(print())
                     // then

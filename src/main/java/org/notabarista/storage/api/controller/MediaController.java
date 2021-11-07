@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import lombok.extern.log4j.Log4j2;
 import org.notabarista.exception.AbstractNotabaristaException;
 import org.notabarista.storage.api.validator.ContentType;
+import org.notabarista.storage.service.MediaService;
 import org.notabarista.storage.service.StorageService;
 import org.notabarista.util.NABConstants;
 import org.springframework.http.HttpStatus;
@@ -33,9 +34,11 @@ import java.util.List;
 public class MediaController {
 
     private final StorageService storageService;
+    private final MediaService mediaService;
 
-    public MediaController(StorageService storageService) {
+    public MediaController(StorageService storageService, MediaService mediaService) {
         this.storageService = storageService;
+        this.mediaService = mediaService;
     }
 
     @PostMapping
@@ -51,6 +54,21 @@ public class MediaController {
                                               @RequestHeader(NABConstants.UID_HEADER_NAME) String userId) throws AbstractNotabaristaException, JsonProcessingException, MalformedURLException {
         storageService.delete(itemID, mediaURLs, userId);
         return new ResponseEntity<>("Media files deleted successfully!", HttpStatus.OK);
+    }
+
+    @PostMapping("/links")
+    public ResponseEntity<String> saveLinks(@RequestParam("itemID") @NotBlank String itemID,
+                                            @RequestBody @NotEmpty List<String> mediaURLs,
+                                            @RequestHeader(NABConstants.UID_HEADER_NAME) String userId) throws IOException, AbstractNotabaristaException {
+        mediaService.addMedia(itemID, userId, mediaURLs);
+        return new ResponseEntity<>("Media file links saved!", HttpStatus.OK);
+    }
+
+    @DeleteMapping("/links")
+    public ResponseEntity<String> deleteLinks(@RequestParam("itemID") @NotBlank String itemID, @RequestBody @NotEmpty List<String> mediaURLs,
+                                              @RequestHeader(NABConstants.UID_HEADER_NAME) String userId) throws JsonProcessingException, AbstractNotabaristaException {
+        mediaService.deleteMedia(itemID, userId, mediaURLs);
+        return new ResponseEntity<>("Media file links deleted successfully!", HttpStatus.OK);
     }
 
 }
