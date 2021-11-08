@@ -48,6 +48,15 @@ ribbon:
     client:
       enabled: true
 
+filebase:
+  endpoint: https://s3.filebase.com
+  region: us-east-1
+  bucket: media-storage
+  access:
+    key: ${FILEBASE_ACCESS_KEY}
+  secret:
+    key: ${FILEBASE_SECRET_KEY}
+
 management:
   endpoints:
     web:
